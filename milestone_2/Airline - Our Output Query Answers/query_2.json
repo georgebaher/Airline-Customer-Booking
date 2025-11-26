@@ -1,0 +1,47 @@
+{
+  "query_index": 2,
+  "row_count": 10,
+  "elapsed_ms": 84.778,
+  "rows": [
+    {
+      "flight_id": "42/B777-300",
+      "feedback_count": 14
+    },
+    {
+      "flight_id": "19/B777-200",
+      "feedback_count": 13
+    },
+    {
+      "flight_id": "27/B787-9",
+      "feedback_count": 12
+    },
+    {
+      "flight_id": "966/B767-300",
+      "feedback_count": 12
+    },
+    {
+      "flight_id": "86/B787-10",
+      "feedback_count": 12
+    },
+    {
+      "flight_id": "1686/B757-200",
+      "feedback_count": 11
+    },
+    {
+      "flight_id": "57/B777-300",
+      "feedback_count": 11
+    },
+    {
+      "flight_id": "219/B787-10",
+      "feedback_count": 10
+    },
+    {
+      "flight_id": "253/B777-200",
+      "feedback_count": 9
+    },
+    {
+      "flight_id": "819/B777-200",
+      "feedback_count": 9
+    }
+  ]
+}

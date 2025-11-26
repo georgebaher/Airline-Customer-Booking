@@ -1,0 +1,11 @@
+Overall Satisfaction Score Rule
+
+overall_satisfaction_score = 0.5 * food + 0.35 * delay_score + 0.1 * legs_score + 0.05 * miles_score
+
+Where:
+- food = Journey.food_satisfaction_score (1–5 as provided).
+- delay_score = 5 - clamp(abs(Journey.arrival_delay_minutes) / 20, 0, 5).
+- legs_score = 5 - clamp(Journey.number_of_legs * 1.5, 0, 5).
+- miles_score = 5 - clamp(Journey.actual_flown_miles / 3000, 0, 5).
+
+All intermediate clamp inputs are rounded to one decimal place before clamping to [0, 5]. Passengers with overall_satisfaction_score > 3 should be counted; expected count from the sample data: 1856.

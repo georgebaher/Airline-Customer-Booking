@@ -1,0 +1,47 @@
+{
+  "query_index": 4,
+  "row_count": 10,
+  "elapsed_ms": 96.747,
+  "rows": [
+    {
+      "flight_id": "2442/A320-200",
+      "avg_arrival_delay": -99.0
+    },
+    {
+      "flight_id": "274/B767-300",
+      "avg_arrival_delay": -60.0
+    },
+    {
+      "flight_id": "425/B737-900",
+      "avg_arrival_delay": -59.0
+    },
+    {
+      "flight_id": "982/B757-200",
+      "avg_arrival_delay": -46.0
+    },
+    {
+      "flight_id": "120/B757-200",
+      "avg_arrival_delay": -45.0
+    },
+    {
+      "flight_id": "964/B767-300",
+      "avg_arrival_delay": -45.0
+    },
+    {
+      "flight_id": "1237/B737-MAX8",
+      "avg_arrival_delay": -44.0
+    },
+    {
+      "flight_id": "1130/B737-MAX8",
+      "avg_arrival_delay": -43.0
+    },
+    {
+      "flight_id": "894/B787-9",
+      "avg_arrival_delay": -42.5
+    },
+    {
+      "flight_id": "122/B767-400",
+      "avg_arrival_delay": -42.25
+    }
+  ]
+}

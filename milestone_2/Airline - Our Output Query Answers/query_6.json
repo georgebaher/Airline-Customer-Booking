@@ -1,0 +1,10 @@
+{
+  "query_index": 6,
+  "row_count": 1,
+  "elapsed_ms": 92.758,
+  "rows": [
+    {
+      "satisfied_passenger_count": 1856
+    }
+  ]
+}
