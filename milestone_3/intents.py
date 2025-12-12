@@ -116,10 +116,3 @@ def get_intent_by_id(intent_id: str) -> Dict[str, Any] | None:
     return None
 
 
-__all__ = [
-    "AIRLINE_INTENTS",
-    "INTENT_IDS",
-    "INTENT_ID_SET",
-    "INTENT_TEXT",
-    "get_intent_by_id",
-]

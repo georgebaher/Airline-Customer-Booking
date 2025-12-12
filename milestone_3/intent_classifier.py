@@ -185,14 +185,53 @@ class LLMIntentClassifier:
         query_result = self.run_intent_query(intent_result, extra_params)
         return intent_result, query_result
 
+    def classify_and_run_hybrid(
+        self,
+        user_query: str,
+        extra_params: Optional[Dict[str, Any]] = None,
+        embedding_model: str = "minilm",
+        top_k: int = 5,
+    ) -> Tuple[IntentResult, Dict[str, Any]]:
+        """
+        Hybrid retrieval: combine Cypher baseline with embedding similarity search.
+        
+        This implements the project requirement to combine both approaches:
+        - Baseline: Structured Cypher queries from intent classification
+        - Embeddings: Semantic similarity search using feature vector embeddings
+        
+        Returns (IntentResult, combined_results) where combined_results has:
+        - 'baseline': Cypher query results (or None)
+        - 'embedding': Similarity search results
+        - 'query_embedding': The embedding vector used for search
+        """
+        # Import here to avoid circular dependency
+        from embeddings import embed_query
+        from run_queries import similarity_search
+        
+        # Classify intent and run baseline Cypher query
+        intent_result = self.classify(user_query)
+        baseline_result = self.run_intent_query(intent_result, extra_params)
+        
+        # Run embedding-based similarity search
+        query_embedding = embed_query(user_query, model_key=embedding_model)
+        embedding_rows, embedding_ms = similarity_search(query_embedding, top_k=top_k)
+        
+        combined_results = {
+            "baseline": baseline_result,
+            "embedding": {
+                "rows": embedding_rows,
+                "elapsed_ms": embedding_ms,
+                "model": embedding_model,
+            },
+            "query_embedding_dims": len(query_embedding),
+        }
+        
+        return intent_result, combined_results
+
 
 def default_classifier() -> LLMIntentClassifier:
     """Convenience factory with env-based configuration."""
     return LLMIntentClassifier()
 
 
-__all__ = [
-    "IntentResult",
-    "LLMIntentClassifier",
-    "default_classifier",
-]
+

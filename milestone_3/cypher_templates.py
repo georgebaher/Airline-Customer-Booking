@@ -97,4 +97,3 @@ def get_cypher_template(intent_id: str) -> Optional[str]:
     return CYPHER_TEMPLATES.get(intent_id)
 
 
-__all__ = ["CYPHER_TEMPLATES", "get_cypher_template"]
