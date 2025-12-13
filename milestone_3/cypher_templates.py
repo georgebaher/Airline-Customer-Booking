@@ -11,11 +11,6 @@ CYPHER_TEMPLATES: Dict[str, str] = {
         RETURN f.flight_number, f.fleet_type_description
         LIMIT 5;
     """,
-    "check_avg_delay": """
-        MATCH (o:Airport {station_code: $origin})<-[:DEPARTS_FROM]-(f:Flight)-[:ARRIVES_AT]->(d:Airport {station_code: $dest})
-        MATCH (j:Journey)-[:ON]->(f)
-        RETURN avg(j.arrival_delay_minutes) as average_delay;
-    """,
     "food_quality_inquiry": """
         MATCH (j:Journey)
         WHERE ($class IS NULL OR j.passenger_class = $class)
@@ -42,6 +37,11 @@ CYPHER_TEMPLATES: Dict[str, str] = {
         MATCH (o:Airport {station_code: $origin})<-[:DEPARTS_FROM]-(f:Flight)-[:ARRIVES_AT]->(d:Airport {station_code: $dest})
         MATCH (j:Journey)-[:ON]->(f)
         RETURN avg(j.actual_flown_miles) as miles LIMIT 1;
+    """,
+    "check_avg_delay": """
+        MATCH (o:Airport {station_code: $origin})<-[:DEPARTS_FROM]-(f:Flight)-[:ARRIVES_AT]->(d:Airport {station_code: $dest})
+        MATCH (j:Journey)-[:ON]->(f)
+        RETURN avg(j.arrival_delay_minutes) as average_delay;
     """,
     "reliability_check": """
         MATCH (o:Airport {station_code: $origin})<-[:DEPARTS_FROM]-(f:Flight)-[:ARRIVES_AT]->(d:Airport {station_code: $dest})

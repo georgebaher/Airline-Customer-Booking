@@ -58,12 +58,12 @@ def _parse_json_response(text: str) -> Dict[str, Any]:
 
 
 def _build_query_params(
-    intent_id: str, entities: Dict[str, Any], extra_params: Optional[Dict[str, Any]] = None
+    intent_id: str, entities: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
     Translate classified entities into Cypher parameters expected by templates.
 
-    extra_params lets callers override or supply missing values explicitly.
+    Translate classified entities into Cypher parameters expected by templates.
     """
 
     def first_present(keys):
@@ -85,11 +85,8 @@ def _build_query_params(
     params: Dict[str, Any] = {}
     for cypher_key, candidate_keys in param_map.items():
         value = first_present(candidate_keys)
-        if value is not None:
-            params[cypher_key] = value
+        params[cypher_key] = value
 
-    if extra_params:
-        params.update({k: v for k, v in extra_params.items() if v is not None})
 
     return params
 
@@ -158,37 +155,36 @@ class LLMIntentClassifier:
         )
 
     def run_intent_query(
-        self, intent_result: IntentResult, extra_params: Optional[Dict[str, Any]] = None
+        self, intent_result: IntentResult
     ) -> Optional[Dict[str, Any]]:
         """
         Execute the Cypher template for a classified intent, if available.
 
-        extra_params can supply or override parameters missing from entities.
+        Execute the Cypher template for a classified intent, if available.
         Returns dict with rows, elapsed_ms, and the final params used; or None
         if no template is associated with the intent.
         """
         if not intent_result.cypher_template:
             return None
 
-        params = _build_query_params(intent_result.intent_id, intent_result.entities, extra_params)
+        params = _build_query_params(intent_result.intent_id, intent_result.entities)
         rows, elapsed_ms = run_query(intent_result.cypher_template, params)
         return {"rows": rows, "elapsed_ms": elapsed_ms, "params": params}
 
     def classify_and_run(
-        self, user_query: str, extra_params: Optional[Dict[str, Any]] = None
+        self, user_query: str
     ) -> Tuple[IntentResult, Optional[Dict[str, Any]]]:
         """
         Convenience: classify a query and immediately execute its Cypher template.
         Returns (IntentResult, query_result_dict|None).
         """
         intent_result = self.classify(user_query)
-        query_result = self.run_intent_query(intent_result, extra_params)
+        query_result = self.run_intent_query(intent_result)
         return intent_result, query_result
 
     def classify_and_run_hybrid(
         self,
         user_query: str,
-        extra_params: Optional[Dict[str, Any]] = None,
         embedding_model: str = "minilm",
         embedding_style: str = "rich",
         top_k: int = 5,
@@ -211,7 +207,7 @@ class LLMIntentClassifier:
         
         # Classify intent and run baseline Cypher query
         intent_result = self.classify(user_query)
-        baseline_result = self.run_intent_query(intent_result, extra_params)
+        baseline_result = self.run_intent_query(intent_result)
         
         # Run embedding-based similarity search
         query_embedding = embed_query(user_query, model_key=embedding_model)

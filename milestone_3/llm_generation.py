@@ -132,14 +132,14 @@ class RAGAgent:
                 
             llm = ChatGoogleGenerativeAI(
                 model=target_model,
-                temperature=0.0,
+                temperature=0.2,
                 google_api_key=self.config.require_google_key()
             )
         else:
             # Default to OpenAI compatible (OpenAI, OpenRouter, etc)
             llm = ChatOpenAI(
                 model=target_model,
-                temperature=0.2, # Keep it factual
+                temperature=0.2,
                 api_key=self.config.require_api_key(),
                 base_url=self.config.base_url,
             )

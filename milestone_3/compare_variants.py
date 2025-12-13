@@ -10,7 +10,7 @@ from intent_classifier import default_classifier
 
 def main():
     # You can change this query to test different scenarios
-    query = "Find flights with excellent food and legroom"
+    query = "Find flights with great food quality"
     
     print(f"Query: '{query}'\n")
     print("=" * 60)

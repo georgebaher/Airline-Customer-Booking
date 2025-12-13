@@ -1,0 +1,49 @@
+User Query: 'Find flights from LAX to IAX with minimal delays'
+============================================================
+Classifying and Retrieving Data (Structural Only)...
+   -> Intent: reliability_check
+   -> Baseline Results: 1
+
+--- RETRIEVED DATA ---
+{
+  "f.fleet_type_description": "B737-800",
+  "avg_delay": -9.833333333333334
+}
+----------------------
+
+
+Generating Answer with LLM...
+
+--- DEBUG: PROMPT SENT TO LLM ---
+SYSTEM:
+You are an expert Airline Data Analyst and Customer Assistant. 
+You work for the airline company and have access to a Knowledge Graph containing detailed journey data.
+Your goal is to answer questions accurately based ONLY on the provided context.
+
+
+Instructions:
+1.  Read the User Query and the Retrieved Context carefully.
+2.  Synthesize the information from the context to answer the query.
+3.  If the context does not contain the answer, admit that you don't know - do NOT hallucinate.
+4.  Cite specific flight numbers, routes, or metrics (like food score, delay) from the context to support your answer.
+5.  Keep your tone professional, helpful, and concise.
+
+
+=== CONTEXT ===
+Intent Detected: reliability_check (Confidence: 0.80)
+Rationale: User asks for minimal delays
+
+=== STRUCTURAL SEARCH RESULTS (Exact Matches) ===
+1. {"f.fleet_type_description": "B737-800", "avg_delay": -9.833333333333334}
+
+=== SEMANTIC SEARCH RESULTS (Similar Journeys) ===
+(No semantic matches found)
+USER:
+User Query: Find flights from LAX to IAX with minimal delays
+---------------------------------
+
+------------------------------------------------------------
+FINAL ANSWER:
+
+Based on the provided context, I couldn't find any specific flights from LAX to IAX. However, I did find information on the average delay for a specific fleet type, the B737-800, which has an average delay of -9.83 minutes, indicating that it typically departs early. Unfortunately, without more information on the route or specific flights from LAX to IAX, I couldn't provide a more detailed answer. If you have any more questions or need further assistance, please let me know.
+============================================================
