@@ -28,9 +28,10 @@ def _infer_default_base() -> Optional[str]:
 class LLMConfig:
     """LLM provider settings."""
 
-    provider: str = os.getenv("LLM_PROVIDER", "openrouter")
-    model: str = os.getenv("LLM_MODEL", "mistral/mistral-7b-instruct")
+    provider: str = os.getenv("LLM_PROVIDER", "google")
+    model: str = os.getenv("LLM_MODEL", "gemini-2.5-flash")
     api_key: Optional[str] = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+    google_api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
     base_url: Optional[str] = _infer_default_base()
 
     def require_api_key(self) -> str:
@@ -39,6 +40,13 @@ class LLMConfig:
                 "No API key found. Set OPENROUTER_API_KEY (preferred) or OPENAI_API_KEY in your environment."
             )
         return self.api_key
+
+    def require_google_key(self) -> str:
+        if not self.google_api_key:
+            raise RuntimeError(
+                "No Google API key found. Set GOOGLE_API_KEY in your environment."
+            )
+        return self.google_api_key
 
 
 def load_llm_config() -> LLMConfig:

@@ -12,7 +12,7 @@ def main():
     # You can change this query to test different scenarios
     query = "Find flights with excellent food and legroom"
     
-    print(f"🔎 Query: '{query}'\n")
+    print(f"Query: '{query}'\n")
     print("=" * 60)
     
     classifier = default_classifier()
@@ -25,7 +25,7 @@ def main():
     ]
     
     for model, style in variants:
-        print(f"\n🧪 Variant: {model.upper()} | {style.capitalize()}")
+        print(f"\nVariant: {model.upper()} | {style.capitalize()}")
         print("-" * 30)
         
         # We only care about the embedding search results here
@@ -54,7 +54,7 @@ def main():
                 print(f"      Feedback ID: {hit.get('feedback_id')}")
 
         except Exception as e:
-            print(f"   ⚠️ Error: {e}")
+            print(f"   Error: {e}")
             
     print("\n" + "=" * 60)
     print("Compare the results above to decide which variant works best for your use case.")
