@@ -190,6 +190,7 @@ class LLMIntentClassifier:
         user_query: str,
         extra_params: Optional[Dict[str, Any]] = None,
         embedding_model: str = "minilm",
+        embedding_style: str = "rich",
         top_k: int = 5,
     ) -> Tuple[IntentResult, Dict[str, Any]]:
         """
@@ -214,7 +215,17 @@ class LLMIntentClassifier:
         
         # Run embedding-based similarity search
         query_embedding = embed_query(user_query, model_key=embedding_model)
-        embedding_rows, embedding_ms = similarity_search(query_embedding, top_k=top_k)
+        
+        # Construct property name: embedding_{model}_{style}
+        # e.g. embedding_minilm_rich
+        # Fallback for backward compat if needed, but we enforce new schema now
+        property_name = f"embedding_{embedding_model}_{embedding_style}"
+        
+        embedding_rows, embedding_ms = similarity_search(
+            query_embedding, 
+            top_k=top_k, 
+            property_name=property_name
+        )
         
         combined_results = {
             "baseline": baseline_result,

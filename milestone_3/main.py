@@ -18,8 +18,16 @@ def main():
     print(f"Query: {query}\n")
     print("-" * 50)
     
+    # Configuration
+    SELECTED_MODEL = "minilm"  # options: "minilm", "mpnet"
+    SELECTED_STYLE = "rich"    # options: "rich", "simple"
+    
     classifier = default_classifier()
-    result, query_result = classifier.classify_and_run(query)
+    result, query_result = classifier.classify_and_run_hybrid(
+        query,
+        embedding_model=SELECTED_MODEL,
+        embedding_style=SELECTED_STYLE
+    )
     
     payload = result.__dict__.copy()
     if query_result is not None:

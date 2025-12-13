@@ -70,4 +70,91 @@ def run_query(
     return rows, elapsed_ms
 
 
-__all__ = ["Neo4jConfig", "load_config", "run_query"]
+def create_vector_index(
+    index_name: str = "journey_embeddings",
+    node_label: str = "Journey",
+    property_name: str = "embedding",
+    dimensions: int = 384,
+    similarity_function: str = "cosine",
+    config_path: Path = CONFIG_PATH
+) -> bool:
+    """
+    Create a vector index in Neo4j for similarity search.
+    
+    Returns True if index was created, False if it already exists.
+    """
+    query = f"""
+    CREATE VECTOR INDEX {index_name} IF NOT EXISTS
+    FOR (n:{node_label})
+    ON n.{property_name}
+    OPTIONS {{
+        indexConfig: {{
+            `vector.dimensions`: {dimensions},
+            `vector.similarity_function`: '{similarity_function}'
+        }}
+    }}
+    """
+    try:
+        run_query(query, config_path=config_path)
+        return True
+    except Exception:
+        return False
+
+
+def update_journey_properties(
+    feedback_id: str,
+    properties: Dict[str, Any],
+    config_path: Path = CONFIG_PATH
+) -> None:
+    """Update arbitrary properties on a Journey node."""
+    if not properties:
+        return
+
+    sets = []
+    params = {"feedback_id": feedback_id}
+    
+    for key, value in properties.items():
+        # We assume keys are safe property names
+        sets.append(f"j.{key} = ${key}")
+        params[key] = value
+
+    query = f"""
+    MATCH (j:Journey {{feedback_ID: $feedback_id}})
+    SET {", ".join(sets)}
+    """
+    
+    run_query(query, params, config_path)
+
+
+def similarity_search(
+    query_embedding: list,
+    top_k: int = 5,
+    property_name: str = "embedding",
+    config_path: Path = CONFIG_PATH
+) -> Tuple[list, float]:
+    """
+    Find the top-k most similar journeys using vector similarity.
+    
+    Target specific embedding property with property_name.
+    """
+    query = f"""
+    MATCH (j:Journey)
+    WHERE j.{property_name} IS NOT NULL
+    WITH j, vector.similarity.cosine(j.{property_name}, $query_embedding) AS score
+    ORDER BY score DESC
+    LIMIT $top_k
+    MATCH (j)-[:ON]->(f:Flight)
+    OPTIONAL MATCH (f)-[:DEPARTS_FROM]->(o:Airport)
+    OPTIONAL MATCH (f)-[:ARRIVES_AT]->(d:Airport)
+    RETURN 
+        j.feedback_ID as feedback_id,
+        j.passenger_class as passenger_class,
+        j.food_satisfaction_score as food_score,
+        j.arrival_delay_minutes as delay,
+        j.actual_flown_miles as miles,
+        f.fleet_type_description as fleet,
+        o.station_code as origin,
+        d.station_code as destination,
+        score
+    """
+    return run_query(query, {"query_embedding": query_embedding, "top_k": top_k}, config_path)
