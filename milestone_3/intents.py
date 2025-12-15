@@ -49,10 +49,10 @@ AIRLINE_INTENTS: List[Dict[str, Any]] = [
         "examples": ["How many miles is the flight to Seattle?", "Distance from LHR to JFK"],
     },
     {
-        "id": "reliability_check",
-        "label": "Reliability Check",
-        "description": "Find routes or fleets with minimal delay minutes.",
-        "examples": ["Which flights to London have the least delay?", "Most reliable fleet type"],
+        "id": "low_delay_route_search",
+        "label": "Low Delay Route Search",
+        "description": "Find flights between specific airports with minimal delays.",
+        "examples": ["Find flights from ORD to LAX with minimal delays", "Show me low-delay flights from JFK to SFO"],
     },
     {
         "id": "class_comparison",
@@ -67,12 +67,6 @@ AIRLINE_INTENTS: List[Dict[str, Any]] = [
         "examples": ["Do Boeing 777s have good food ratings?", "Delays on the Airbus fleet"],
     },
     {
-        "id": "long_haul_finder",
-        "label": "Long Haul Finder",
-        "description": "Find flights based on high actual flown miles.",
-        "examples": ["Show me long haul flights over 5000 miles", "Longest routes available"],
-    },
-    {
         "id": "multi_leg_search",
         "label": "Multi-Leg Search",
         "description": "Find flights that specifically involve layovers (multiple legs).",
@@ -80,9 +74,9 @@ AIRLINE_INTENTS: List[Dict[str, Any]] = [
     },
     {
         "id": "generation_inquiry",
-        "label": "Aircraft Generation Inquiry",
-        "description": "Filter flights by aircraft generation.",
-        "examples": ["I want to fly on the newest generation aircraft", "Old generation planes to avoid"],
+        "label": "Passenger Generation Inquiry",
+        "description": "Analyze flight preferences and metrics based on passenger generation (e.g., Millennial, Gen X).",
+        "examples": ["What planes do Millennials usually fly?", "What aircraft do Gen X passengers prefer?", "Fleet usage for Boomers"],
     },
     {
         "id": "satisfaction_by_route",

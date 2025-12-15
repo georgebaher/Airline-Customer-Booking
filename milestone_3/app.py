@@ -64,11 +64,26 @@ with st.sidebar:
         format_func=lambda x: f"{x.upper()} ({AVAILABLE_MODELS[x].split('/')[-1]})"
     )
     
-    # Embedding settings
-    st.subheader("Embedding Settings")
-    embedding_model = st.selectbox("Embedding Model", ["minilm", "mpnet"])
-    embedding_style = st.selectbox("Description Style", ["rich", "simple"])
-    top_k = st.slider("Top-K Results", 1, 10, 5)
+    # Retrieval method selector
+    st.subheader("Retrieval Method")
+    retrieval_method = st.radio(
+        "Choose retrieval approach",
+        options=["hybrid", "baseline"],
+        format_func=lambda x: "Hybrid (Cypher + Embeddings)" if x == "hybrid" else "Baseline Only (Cypher)",
+        help="Baseline uses structured Cypher queries. Hybrid adds semantic embedding search."
+    )
+    
+    # Embedding settings (only show if hybrid)
+    if retrieval_method == "hybrid":
+        st.subheader("Embedding Settings")
+        embedding_model = st.selectbox("Embedding Model", ["minilm", "mpnet"])
+        embedding_style = st.selectbox("Description Style", ["rich", "simple"])
+        top_k = st.slider("Top-K Results", 1, 10, 5)
+    else:
+        # Set defaults when baseline only
+        embedding_model = "minilm"
+        embedding_style = "rich"
+        top_k = 5
     
 
 # --- MAIN QUERY INPUT ---
@@ -107,12 +122,23 @@ if submit_btn and user_query:
         
         # Step 1: Classification & Retrieval
         start_time = time.time()
-        intent_result, query_results = classifier.classify_and_run_hybrid(
-            user_query,
-            embedding_model=embedding_model,
-            embedding_style=embedding_style,
-            top_k=top_k
-        )
+        
+        if retrieval_method == "hybrid":
+            intent_result, query_results = classifier.classify_and_run_hybrid(
+                user_query,
+                embedding_model=embedding_model,
+                embedding_style=embedding_style,
+                top_k=top_k
+            )
+        else:
+            # Baseline only - wrap result in same structure for consistent UI
+            intent_result, baseline_result = classifier.classify_and_run(user_query)
+            query_results = {
+                "baseline": baseline_result,
+                "embedding": None,
+                "query_embedding_dims": "N/A (baseline only)",
+            }
+        
         retrieval_time = time.time() - start_time
         
         # Step 2: LLM Generation
@@ -145,7 +171,7 @@ if submit_btn and user_query:
     with col3:
         st.metric("Est. Cost", f"${result['cost_usd']:.6f}")
     with col4:
-        st.metric("Model", model_choice.upper())
+        st.metric("Retrieval", "Hybrid" if retrieval_method == "hybrid" else "Baseline")
     
     st.divider()
     
@@ -176,32 +202,41 @@ if submit_btn and user_query:
         else:
             st.info("No structural matches found")
     
-    # Embedding Results (Semantic)
-    with st.expander("Semantic Search Results (Embeddings)", expanded=True):
-        embedding_res = query_results.get("embedding", {})
-        if embedding_res.get("rows"):
-            # Format for display
-            rows = embedding_res["rows"]
-            display_data = []
-            for row in rows:
-                display_data.append({
-                    "Score": f"{row.get('score', 0):.4f}",
-                    "Class": row.get("passenger_class", ""),
-                    "Fleet": row.get("fleet", ""),
-                    "Route": f"{row.get('origin', '')} → {row.get('destination', '')}",
-                    "Delay": f"{row.get('delay', 0)} min",
-                    "Food": f"{row.get('food_score', 0)}/5",
-                })
-            st.dataframe(display_data, width="stretch")
-            st.caption(f"Model: {embedding_model} | Style: {embedding_style} | Query time: {embedding_res.get('elapsed_ms', 0):.1f}ms")
-        else:
-            st.info("No semantic matches found")
+    # Embedding Results (Semantic) - only show if hybrid
+    if retrieval_method == "hybrid":
+        with st.expander("Semantic Search Results (Embeddings)", expanded=True):
+            embedding_res = query_results.get("embedding", {})
+            if embedding_res and embedding_res.get("rows"):
+                # Format for display
+                rows = embedding_res["rows"]
+                display_data = []
+                for row in rows:
+                    display_data.append({
+                        "Score": f"{row.get('score', 0):.4f}",
+                        "Class": row.get("passenger_class", ""),
+                        "Fleet": row.get("fleet", ""),
+                        "Route": f"{row.get('origin', '')} → {row.get('destination', '')}",
+                        "Delay": f"{row.get('delay', 0)} min",
+                        "Food": f"{row.get('food_score', 0)}/5",
+                    })
+                st.dataframe(display_data, width="stretch")
+                st.caption(f"Model: {embedding_model} | Style: {embedding_style} | Query time: {embedding_res.get('elapsed_ms', 0):.1f}ms")
+            else:
+                st.info("No semantic matches found")
     
     # Retrieval Stats
     with st.expander("Retrieval Statistics"):
-        st.markdown(f"""
-        - **Total Retrieval Time:** {retrieval_time:.2f}s
-        - **Embedding Dimensions:** {query_results.get('query_embedding_dims', 'N/A')}
-        - **Embedding Model:** {embedding_model}
-        - **Description Style:** {embedding_style}
-        """)
+        if retrieval_method == "hybrid":
+            st.markdown(f"""
+            - **Retrieval Method:** Hybrid (Cypher + Embeddings)
+            - **Total Retrieval Time:** {retrieval_time:.2f}s
+            - **Embedding Dimensions:** {query_results.get('query_embedding_dims', 'N/A')}
+            - **Embedding Model:** {embedding_model}
+            - **Description Style:** {embedding_style}
+            """)
+        else:
+            st.markdown(f"""
+            - **Retrieval Method:** Baseline Only (Cypher)
+            - **Total Retrieval Time:** {retrieval_time:.2f}s
+            - **Note:** No embedding search was performed
+            """)

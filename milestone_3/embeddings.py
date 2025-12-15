@@ -61,12 +61,13 @@ def build_journey_description(journey: Dict[str, Any]) -> str:
     if origin and dest:
         parts.append(f"from {origin} to {dest}")
     
+    # medium-haul being between 1,600–4,000 km; 900–2,200 nmi;
     # Distance
     miles = journey.get("actual_flown_miles")
     if miles is not None:
-        if miles > 5000:
+        if miles > 2200:
             parts.append(f"{miles} miles long-haul")
-        elif miles > 2000:
+        elif miles > 900:
             parts.append(f"{miles} miles medium-haul")
         else:
             parts.append(f"{miles} miles short-haul")

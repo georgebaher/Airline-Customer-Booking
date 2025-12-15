@@ -43,11 +43,12 @@ CYPHER_TEMPLATES: Dict[str, str] = {
         MATCH (j:Journey)-[:ON]->(f)
         RETURN avg(j.arrival_delay_minutes) as average_delay;
     """,
-    "reliability_check": """
+    "low_delay_route_search": """
         MATCH (o:Airport {station_code: $origin})<-[:DEPARTS_FROM]-(f:Flight)-[:ARRIVES_AT]->(d:Airport {station_code: $dest})
         MATCH (j:Journey)-[:ON]->(f)
-        RETURN f.fleet_type_description, avg(j.arrival_delay_minutes) as avg_delay
-        ORDER BY avg_delay ASC LIMIT 1;
+        RETURN f.flight_number, f.fleet_type_description, avg(j.arrival_delay_minutes) as avg_delay
+        ORDER BY avg_delay ASC
+        LIMIT 5;
     """,
     "class_comparison": """
         MATCH (j:Journey)
@@ -59,13 +60,6 @@ CYPHER_TEMPLATES: Dict[str, str] = {
         WHERE f.fleet_type_description CONTAINS $fleet
         MATCH (j:Journey)-[:ON]->(f)
         RETURN f.fleet_type_description, avg(j.arrival_delay_minutes) as delay, avg(j.food_satisfaction_score) as food;
-    """,
-    "long_haul_finder": """
-        MATCH (o:Airport)<-[:DEPARTS_FROM]-(f:Flight)-[:ARRIVES_AT]->(d:Airport)
-        MATCH (j:Journey)-[:ON]->(f)
-        WHERE j.actual_flown_miles > $min_miles
-        RETURN o.station_code AS origin_station_code, d.station_code AS destination_station_code, j.actual_flown_miles
-        ORDER BY j.actual_flown_miles DESC LIMIT 10;
     """,
     "multi_leg_search": """
         MATCH (o:Airport {station_code: $origin})<-[:DEPARTS_FROM]-(f:Flight)-[:ARRIVES_AT]->(d:Airport {station_code: $dest})
@@ -81,7 +75,7 @@ CYPHER_TEMPLATES: Dict[str, str] = {
     "satisfaction_by_route": """
         MATCH (o:Airport {station_code: $origin})<-[:DEPARTS_FROM]-(f:Flight)-[:ARRIVES_AT]->(d:Airport {station_code: $dest})
         MATCH (j:Journey)-[:ON]->(f)
-        RETURN avg(j.food_satisfaction_score) as global_satisfaction_score;
+        RETURN avg(j.food_satisfaction_score) as route_satisfaction_score;
     """,
     "comprehensive_flight_detail": """
         MATCH (o:Airport {station_code: $origin})<-[:DEPARTS_FROM]-(f:Flight)-[:ARRIVES_AT]->(d:Airport {station_code: $dest})
