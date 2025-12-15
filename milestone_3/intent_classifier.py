@@ -28,15 +28,13 @@ Intents:
 
 Output JSON with keys:
 - intent_id: one of [{INTENT_IDS}]
-- confidence: float 0-1 (≤0.35 if unsure)
-- rationale: <=40 words describing the decision
 - entities: dict with any of these keys if present:
     origin_station_code, destination_station_code, arrival_delay_minutes,
     passenger_class, number_of_legs, loyalty_program_level,
     generation, fleet_type_description, actual_flown_miles, food_satisfaction_score
 
 Rules:
-- If unclear or unsupported, set intent_id="general_qa" and low confidence.
+- If unclear or unsupported, set intent_id="general_qa".
 - Do not invent entities; include only those implied by the user query.
 - Respond with JSON ONLY, no prose, no markdown.
 """
