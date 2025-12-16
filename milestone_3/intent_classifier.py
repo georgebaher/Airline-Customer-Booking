@@ -34,10 +34,11 @@ Output JSON with keys:
     generation, fleet_type_description, actual_flown_miles, food_satisfaction_score
 
 Rules:
-- If unclear or unsupported, set intent_id="general_qa".
 - Do not invent entities; include only those implied by the user query.
 - Respond with JSON ONLY, no prose, no markdown.
 """
+# - If given city name instead of an airport code, translate to the main airport code. For example convert "New York" to "JFK" in origin_station_code or destination_station_code. Otherwise if given airport code like "JFK" or "LAX" or "SFX", use it as is.
+# """
 
 
 def _parse_json_response(text: str) -> Dict[str, Any]:
@@ -56,11 +57,9 @@ def _parse_json_response(text: str) -> Dict[str, Any]:
 
 
 def _build_query_params(
-    intent_id: str, entities: Dict[str, Any]
+    entities: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Translate classified entities into Cypher parameters expected by templates.
-
     Translate classified entities into Cypher parameters expected by templates.
     """
 
@@ -165,7 +164,8 @@ class LLMIntentClassifier:
         if not intent_result.cypher_template:
             return None
 
-        params = _build_query_params(intent_result.intent_id, intent_result.entities)
+        params = _build_query_params(intent_result.entities)
+        print(intent_result.entities)
         rows, elapsed_ms = run_query(intent_result.cypher_template, params)
         return {"rows": rows, "elapsed_ms": elapsed_ms, "params": params}
 

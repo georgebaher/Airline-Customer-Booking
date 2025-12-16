@@ -53,7 +53,8 @@ def main():
         user_query=QUERY,
         intent_result=intent_res,
         query_result=query_res,
-        model_name=LLM_MODEL_NAME
+        model_name=LLM_MODEL_NAME,
+        approach="baseline"  # Use baseline prompt since this is structural-only
     )
     
     print("-" * 60)

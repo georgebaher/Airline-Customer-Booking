@@ -77,8 +77,8 @@ with st.sidebar:
     if retrieval_method == "hybrid":
         st.subheader("Embedding Settings")
         embedding_model = st.selectbox("Embedding Model", ["minilm", "mpnet"])
-        embedding_style = st.selectbox("Description Style", ["rich", "simple"])
         top_k = st.slider("Top-K Results", 1, 10, 5)
+        embedding_style = "rich"  # Use rich descriptions by default
     else:
         # Set defaults when baseline only
         embedding_model = "minilm"
@@ -100,11 +100,15 @@ with col2:
 # --- EXAMPLE QUERIES ---
 with st.expander("Example Queries"):
     examples = [
-        "Find flights from ORD to LAX with minimal delays",
-        "Which flights have the best food quality?",
-        "Compare Business vs Economy class",
-        "What planes fly JFK to SFO?",
-        "How do Gold members rate the service?",
+        "Flights from JFK to LAX",                           # route_search
+        "How late are flights from LAX to NYC usually?",     # check_avg_delay
+        "How is the food in Business Class?",                # food_quality_inquiry
+        "What kind of plane flies from JFK to LAX?",         # fleet_info
+        "What class do premier gold members usually fly?",           # loyalty_demographics
+        "Find flights from ORD to LAX with minimal delays",  # low_delay_route_search
+        "Compare food score between Economy and First Class", # class_comparison
+        "Do B737-900 fleets have good food ratings?",        # aircraft_performance
+        "What planes do Millennials usually fly?",           # generation_inquiry
     ]
     for ex in examples:
         if st.button(ex, key=ex):
@@ -147,7 +151,8 @@ if submit_btn and user_query:
             intent_result=intent_result,
             query_result=query_results,
             model_name=model_choice,
-            return_metrics=True
+            return_metrics=True,
+            approach=retrieval_method  # Pass baseline or hybrid to use correct prompt
         )
     
     # --- RESULTS DISPLAY ---

@@ -33,20 +33,79 @@ PERSONA = """You are an expert Airline Data Analyst and Customer Assistant.
 You work for the airline company and have access to a Knowledge Graph containing detailed journey data.
 Your goal is to answer questions accurately based ONLY on the provided context."""
 
-TASK = """
+# --- SIMILARITY THRESHOLD CONFIGURATION ---
+# Used to filter semantic search results by confidence level
+SIMILARITY_THRESHOLD_HIGH = 0.7    # High confidence: include as strong evidence
+SIMILARITY_THRESHOLD_MEDIUM = 0.5  # Medium confidence: include with caveat
+# Below MEDIUM threshold: excluded from context
+
+TASK_BASELINE = """
 Instructions:
-1.  Read the User Query and the Retrieved Context carefully.
-2.  Synthesize the information from the context to answer the query.
-3.  If the context does not contain the answer, admit that you don't know - do NOT hallucinate.
-4.  Cite specific flight numbers, routes, or metrics (like food score, delay) from the context to support your answer.
-5.  Keep your tone professional, helpful, and concise.
+1.  The context below contains STRUCTURAL SEARCH RESULTS - exact matches from the Knowledge Graph retrieved via Cypher queries.
+2.  Answer the user's query using ONLY the data provided in the structural search results.
+3.  If the structural search returned no results or insufficient data, clearly state that no matching data was found for the specified criteria.
+4.  When citing data, reference specific values (e.g., flight numbers, fleet types, delay minutes, food scores) from the results.
+5.  Keep your response professional, factual, and concise.
+"""
+
+TASK_HYBRID = """
+Instructions:
+1.  The context below contains results from TWO retrieval sources:
+    - **STRUCTURAL SEARCH (PRIMARY)**: Exact matches from Cypher queries - these are precise and should be your main source.
+    - **SEMANTIC SEARCH (SUPPLEMENTARY)**: Similar journeys found via vector embeddings - these provide additional context.
+
+2.  PRIORITY RULES:
+    - Always prioritize STRUCTURAL results when answering specific questions about routes, delays, or metrics.
+    - Use SEMANTIC results to enrich your answer when structural data is limited or when the query asks for general patterns/recommendations.
+    - Semantic results with similarity scores ≥0.70 are highly relevant; scores 0.50-0.69 are moderately relevant.
+
+3.  HANDLING CONFLICTS:
+    - If structural and semantic results conflict, trust the structural results.
+    - If structural search is empty but semantic search has results, you may answer based on semantic results without mentioning that you did not find exact matches.
+
+4.  RESPONSE GUIDELINES:
+    - If no relevant data is found in either source, clearly state this.
+    - Keep your response professional, factual, and concise.
+    - Return the results without saying they were from structural or semantic search.
 """
 
 # --- CONTEXT FORMATTING ---
 
-def format_context(intent_result: Any, query_result: Dict[str, Any]) -> str:
+def format_context_baseline(intent_result: Any, query_result: Dict[str, Any]) -> str:
     """
-    Format the hybrid retrieval results into a readable text block for the LLM.
+    Format the baseline retrieval results (structural only) into a readable text block for the LLM.
+    
+    Args:
+        intent_result: The IntentResult object from the classifier.
+        query_result: The dictionary of results from baseline search.
+                      Expected keys: 'baseline' or just the result directly
+    """
+    lines = []
+    
+    # 1. Intent Info
+    lines.append(f"Intent: {intent_result.intent_id}")
+    if intent_result.entities:
+        lines.append(f"Extracted Entities: {json.dumps(intent_result.entities)}")
+    
+    # 2. Baseline Results (Cypher)
+    baseline = query_result.get("baseline") or query_result
+    rows = baseline.get("rows", []) if baseline else []
+    
+    lines.append(f"\n=== STRUCTURAL SEARCH RESULTS ({len(rows)} matches) ===")
+    if rows:
+        for i, row in enumerate(rows, 1):
+            lines.append(f"{i}. {json.dumps(row, default=str)}")
+    else:
+        lines.append("(No exact structural matches found for the specified criteria)")
+        
+    return "\n".join(lines)
+
+
+def format_context_hybrid(intent_result: Any, query_result: Dict[str, Any]) -> str:
+    """
+    Format the hybrid retrieval results (structural + semantic) into a readable text block for the LLM.
+    
+    Applies similarity threshold filtering to semantic results.
     
     Args:
         intent_result: The IntentResult object from the classifier.
@@ -56,37 +115,88 @@ def format_context(intent_result: Any, query_result: Dict[str, Any]) -> str:
     lines = []
     
     # 1. Intent Info
-    lines.append(f"Intent Detected: {intent_result.intent_id} (Confidence: {intent_result.confidence:.2f})")
-    lines.append(f"Rationale: {intent_result.rationale}")
+    lines.append(f"Intent: {intent_result.intent_id}")
+    if intent_result.entities:
+        lines.append(f"Extracted Entities: {json.dumps(intent_result.entities)}")
     
-    # 2. Baseline Results (Cypher)
-    lines.append("\n=== STRUCTURAL SEARCH RESULTS (Exact Matches) ===")
+    # 2. Baseline Results (Cypher) - PRIMARY
     baseline = query_result.get("baseline")
-    if baseline and baseline.get("rows"):
-        for i, row in enumerate(baseline["rows"], 1):
+    baseline_rows = baseline.get("rows", []) if baseline else []
+    
+    lines.append(f"\n=== STRUCTURAL SEARCH RESULTS [PRIMARY] ({len(baseline_rows)} matches) ===")
+    if baseline_rows:
+        for i, row in enumerate(baseline_rows, 1):
             lines.append(f"{i}. {json.dumps(row, default=str)}")
     else:
         lines.append("(No exact structural matches found)")
 
-    # 3. Embedding Results (Vector Search)
-    lines.append("\n=== SEMANTIC SEARCH RESULTS (Similar Journeys) ===")
+    # 3. Embedding Results (Vector Search) - SUPPLEMENTARY
+    # Filter by similarity threshold
     embedding_res = query_result.get("embedding")
-    if embedding_res and embedding_res.get("rows"):
-        for i, row in enumerate(embedding_res["rows"], 1):
-            # Format nicely
+    all_rows = embedding_res.get("rows", []) if embedding_res else []
+    
+    # Filter and categorize by confidence
+    high_conf = []
+    medium_conf = []
+    
+    for row in all_rows:
+        score = row.get("score", 0.0)
+        if score >= SIMILARITY_THRESHOLD_HIGH:
+            high_conf.append(row)
+        elif score >= SIMILARITY_THRESHOLD_MEDIUM:
+            medium_conf.append(row)
+        # Below MEDIUM threshold: excluded
+    
+    filtered_count = len(high_conf) + len(medium_conf)
+    lines.append(f"\n=== SEMANTIC SEARCH RESULTS [SUPPLEMENTARY] ({filtered_count} relevant matches) ===")
+    
+    if high_conf or medium_conf:
+        idx = 1
+        for row in high_conf:
             score = row.get("score", 0.0)
-            summary = (
-                f"Journey: {row.get('passenger_class')} class on {row.get('fleet')} "
-                f"from {row.get('origin')} to {row.get('destination')}. "
-                f"Delay: {row.get('delay')}min, Food: {row.get('food_score')}/5."
-            )
-            lines.append(f"{i}. [Similarity: {score:.2f}] {summary}")
-            # detailed dump if needed
-            # lines.append(f"   Details: {json.dumps(row, default=str)}")
+            summary = _format_journey_summary(row)
+            lines.append(f"{idx}. [HIGH RELEVANCE {score:.2f}] {summary}")
+            idx += 1
+        for row in medium_conf:
+            score = row.get("score", 0.0)
+            summary = _format_journey_summary(row)
+            lines.append(f"{idx}. [MEDIUM RELEVANCE {score:.2f}] {summary}")
+            idx += 1
     else:
-        lines.append("(No semantic matches found)")
+        lines.append("(No semantically similar journeys found above threshold)")
         
     return "\n".join(lines)
+
+
+def _format_journey_summary(row: Dict[str, Any]) -> str:
+    """Format a journey row into a readable summary string."""
+    parts = []
+    
+    if row.get("passenger_class"):
+        parts.append(f"{row['passenger_class']} class")
+    if row.get("fleet"):
+        parts.append(f"on {row['fleet']}")
+    if row.get("origin") and row.get("destination"):
+        parts.append(f"from {row['origin']} to {row['destination']}")
+    if row.get("delay") is not None:
+        parts.append(f"delay: {row['delay']}min")
+    if row.get("food_score") is not None:
+        parts.append(f"food: {row['food_score']}/5")
+    
+    return ", ".join(parts) if parts else json.dumps(row, default=str)
+
+
+# Backward compatibility alias - defaults to hybrid
+def format_context(intent_result: Any, query_result: Dict[str, Any]) -> str:
+    """
+    Format retrieval results into a readable text block for the LLM.
+    This function defaults to hybrid formatting for backward compatibility.
+    
+    Args:
+        intent_result: The IntentResult object from the classifier.
+        query_result: The dictionary of results.
+    """
+    return format_context_hybrid(intent_result, query_result)
 
 
 # --- GENERATION ---
@@ -101,7 +211,8 @@ class RAGAgent:
         intent_result: Any,
         query_result: Dict[str, Any],
         model_name: Optional[str] = None,
-        return_metrics: bool = False
+        return_metrics: bool = False,
+        approach: str = "hybrid"
     ) -> str | Dict[str, Any]:
         """
         Generate a final answer using the LLM.
@@ -112,6 +223,7 @@ class RAGAgent:
             query_result: Retrieval results.
             model_name: Optional model alias ('gemini', 'sonnet', 'openai') or full name.
             return_metrics: If True, returns dict with answer + metrics.
+            approach: Either 'baseline' or 'hybrid' - determines which prompt and context formatting to use.
         
         Returns:
             If return_metrics=False: answer string
@@ -120,21 +232,26 @@ class RAGAgent:
         """
         import time
         
-        # 1. Prepare Context
-        context_text = format_context(intent_result, query_result)
+        # 1. Prepare Context based on approach
+        if approach == "baseline":
+            context_text = format_context_baseline(intent_result, query_result)
+            task_prompt = TASK_BASELINE
+        else:  # hybrid (default)
+            context_text = format_context_hybrid(intent_result, query_result)
+            task_prompt = TASK_HYBRID
         
         # 2. Construct Prompt
-        system_content = f"{PERSONA}\n\n{TASK}\n\n=== CONTEXT ===\n{context_text}"
+        system_content = f"{PERSONA}\n\n{task_prompt}\n\n=== CONTEXT ===\n{context_text}"
         
         messages = [
             SystemMessage(content=system_content),
             HumanMessage(content=f"User Query: {user_query}")
         ]
         
-        print("\n--- DEBUG: PROMPT SENT TO LLM ---")
-        print(f"SYSTEM:\n{system_content}")
-        print(f"USER:\nUser Query: {user_query}")
-        print("---------------------------------\n")
+        # print("\n--- DEBUG: PROMPT SENT TO LLM ---")
+        # print(f"SYSTEM:\n{system_content}")
+        # print(f"USER:\nUser Query: {user_query}")
+        # print("---------------------------------\n")
         
         # 3. Initialize LLM via OpenRouter
         if model_name in AVAILABLE_MODELS:

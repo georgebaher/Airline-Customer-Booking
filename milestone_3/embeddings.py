@@ -53,13 +53,13 @@ def build_journey_description(journey: Dict[str, Any]) -> str:
     # Fleet type
     fleet = journey.get("fleet_type_description")
     if fleet:
-        parts.append(f"on {fleet}")
+        parts.append(f"on fleet {fleet}")
     
     # Route (if available)
     origin = journey.get("origin_station_code")
     dest = journey.get("destination_station_code")
     if origin and dest:
-        parts.append(f"from {origin} to {dest}")
+        parts.append(f"from airport {origin} to airport {dest}")
     
     # medium-haul being between 1,600–4,000 km; 900–2,200 nmi;
     # Distance
@@ -85,16 +85,12 @@ def build_journey_description(journey: Dict[str, Any]) -> str:
     # Delay
     delay = journey.get("arrival_delay_minutes")
     if delay is not None:
-        if delay <= -15:
-            parts.append(f"very early arrival {delay} minutes")
-        elif delay < 0:
+        if delay <= -10:
             parts.append(f"early arrival {delay} minutes")
-        elif delay == 0:
-            parts.append("on-time arrival")
-        elif delay <= 30:
-            parts.append(f"slight delay {delay} minutes")
+        elif delay >= 10:
+            parts.append(f"delayed arrival {delay} minutes")
         else:
-            parts.append(f"significant delay {delay} minutes")
+            parts.append("on-time arrival")
     
     # Number of legs
     legs = journey.get("number_of_legs")
@@ -102,7 +98,7 @@ def build_journey_description(journey: Dict[str, Any]) -> str:
         if legs == 1:
             parts.append("direct flight")
         else:
-            parts.append(f"{legs} legs with connections")
+            parts.append(f"{legs} legs with connections, likely cheaper")
     
     # Loyalty level
     loyalty = journey.get("loyalty_program_level")
@@ -112,7 +108,7 @@ def build_journey_description(journey: Dict[str, Any]) -> str:
     # Generation
     generation = journey.get("generation")
     if generation:
-        parts.append(f"{generation} traveler")
+        parts.append(f"{generation} passenger")
     
     return ", ".join(parts)
 
